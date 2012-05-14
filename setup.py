@@ -12,7 +12,7 @@ setup(
     url='https://github.com/aaronmccall/chunkdata/',
     license='MIT License',
     description='Chunked fixture tools for Django',
-    long_description=open('README').read(),
+    long_description=open('README.md').read(),
     download_url='https://github.com/aaronmccall/chunkdata/',
     classifiers = [
                    'Framework :: Django',
