@@ -21,6 +21,10 @@ class Command(BaseCommand):
             help='Use natural keys if they are available.'),
         make_option('-a', '--all', action='store_true', dest='use_base_manager', default=False,
             help="Use Django's base manager to dump all models stored in the database, including those that would otherwise be filtered or modified by a custom manager."),
+        make_option('-c', '--chunk', dest='chunk', type='int', help='Set a maximum number of objects to serialize at once. Requires -f/--filespec to be set.'),
+        make_option('-f', '--filespec', dest='filespec', 
+            help="""Set the base file name. Example: if filespec is "foo" and format is "json" and total number of output files
+                    is 1 then the single output file is foo.json. If there are two, it is foo1.json, foo2.json."""),
     )
     help = ("Output the contents of the database as a fixture of the given "
             "format (using each model's default manager unless --all is "
@@ -33,6 +37,13 @@ class Command(BaseCommand):
         format = options.get('format','json')
         indent = options.get('indent',None)
         using = options.get('database', DEFAULT_DB_ALIAS)
+        chunk = options.get('chunk', None)
+        filespec = options.get('filespec', None)
+        if chunk and not filespec:
+            if len(app_labels) == 1:
+                filespec = app_label[0]
+            else:
+                filespec = 'django'
         connection = connections[using]
         excludes = options.get('exclude',[])
         show_traceback = options.get('traceback', False)
@@ -100,14 +111,29 @@ class Command(BaseCommand):
 
         # Now collate the objects to be serialized.
         objects = []
+        filecount = 1
+        obj_count = 0
         for model in sort_dependencies(app_list.items()):
             if model in excluded_models:
                 continue
             if not model._meta.proxy and router.allow_syncdb(using, model):
                 if use_base_manager:
-                    objects.extend(model._base_manager.using(using).all())
+                    qs = model._base_manager.using(using).all()
                 else:
-                    objects.extend(model._default_manager.using(using).all())
+                    qs = model._default_manager.using(using).all()
+
+                if chunk:
+                    qs_count = qs.count()
+                    if qs_count and obj_count + qs_count > chunk:
+                        try:
+                            write_file(filespec, filecount, format, objects, 
+                                       indent=indent, use_natural_keys=use_natural_keys)
+                        except Exception, e:
+                            if show_traceback:
+                                raise
+                            raise CommandError("Unable to serialize database: %s" % e)
+                            
+                objects.extend(qs)  
 
         try:
             return serializers.serialize(format, objects, indent=indent,
@@ -116,6 +142,9 @@ class Command(BaseCommand):
             if show_traceback:
                 raise
             raise CommandError("Unable to serialize database: %s" % e)
+
+def write_file(spec, count, format, objects, indent=None, use_natural_keys=False):
+    pass
 
 def sort_dependencies(app_list):
     """Sort a list of app,modellist pairs into a single list of models.
