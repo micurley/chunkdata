@@ -3,6 +3,7 @@ from django.core.management.base import BaseCommand, CommandError
 from django.core import serializers
 from django.db import connections, router, DEFAULT_DB_ALIAS
 from django.utils.datastructures import SortedDict
+from django.db.models import get_app, get_apps, get_models, get_model
 
 from optparse import make_option
 
@@ -32,7 +33,6 @@ class Command(BaseCommand):
     args = '[appname appname.ModelName ...]'
 
     def handle(self, *app_labels, **options):
-        from django.db.models import get_app, get_apps, get_models, get_model
 
         format = options.get('format','json')
         indent = options.get('indent',None)
@@ -111,8 +111,10 @@ class Command(BaseCommand):
 
         # Now collate the objects to be serialized.
         objects = []
-        filecount = 1
+        filecount = 0
         obj_count = 0
+        if filespec:
+            path_spec = (get_dirspec(app_labels), filespec)
         for model in sort_dependencies(app_list.items()):
             if model in excluded_models:
                 continue
@@ -125,17 +127,47 @@ class Command(BaseCommand):
                 if chunk:
                     qs_count = qs.count()
                     if qs_count and obj_count + qs_count > chunk:
+
                         try:
-                            write_file(filespec, filecount, format, objects, 
+                            filecount += 1
+                            write_file(path_spec, filecount, format, objects, 
                                        indent=indent, use_natural_keys=use_natural_keys)
+                            objects = []
+                            obj_count += qs_count
                         except Exception, e:
                             if show_traceback:
                                 raise
                             raise CommandError("Unable to serialize database: %s" % e)
+
+                        if qs_count > chunk:
+                            chunk_start = 0
+                            chunk_end = chunk
+                            while chunk_end < qs_count:
+                                filecount += 1
+                                write_file(path_spec, filecount, format, qs[chunk_start:chunk_end],
+                                           indent=indent, use_natural_keys=use_natural_keys)
+                                chunk_start = chunk_end
+                                if chunk_end + chunk <= qs_count:
+                                    chunk_end = chunk_end + chunk
+                                else:
+                                    chunk_end = qs_count
+                    elif qs_count:
+                        objects.extend(qs)
+                        obj_count += qs_count
+                else:
+                    objects.extend(qs)
                             
-                objects.extend(qs)  
+                 
 
         try:
+            if filecount > 1:
+                filecount += 1
+
+            if filespec:
+                write_file(path_spec, filecount, format, objects,
+                           indent=indent, use_natural_keys=use_natural_keys)
+                return "Wrote serialized database to %s/%s.#.%s" % path_spec + (format,)
+
             return serializers.serialize(format, objects, indent=indent,
                         use_natural_keys=use_natural_keys)
         except Exception, e:
@@ -143,8 +175,24 @@ class Command(BaseCommand):
                 raise
             raise CommandError("Unable to serialize database: %s" % e)
 
+def get_dirspec(app_labels):
+    if len(app_labels) == 1:
+        app_label, model_label = app_labels[0].split('.')
+        app = get_app(app_label)
+        return os.path.abspath(os.path.dirname(app.__file__))
+
 def write_file(spec, count, format, objects, indent=None, use_natural_keys=False):
-    pass
+    serialized = serializers.serialize(format, objects, indent=indent, use_natural_keys=use_natural_keys)
+    dirspec, filespec = spec
+    if count == 0:
+        filename = '%s.%s' % (filespec, format)
+    else:
+        filename = '%s.%s.%s' % (filespec, count, format)
+    filepath = os.path.join(dirspec, filename)
+    print "Writing %d objects to %s" % (len(objects), filepath)
+    f = open(filepath, 'wb')
+    f.write(serialized)
+    f.close()
 
 def sort_dependencies(app_list):
     """Sort a list of app,modellist pairs into a single list of models.
