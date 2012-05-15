@@ -47,7 +47,7 @@ class Command(BaseCommand):
                     filepath = os.path.join(fixture_dir, fixture_label)
                     if os.path.exists(filepath):
                         if os.path.isdir(filepath):
-                            for item in os.path.listdir(filepath):
+                            for item in os.listdir(filepath):
                                 if fixture_label.split('/')[-1] in [item, item.split('.')[0]]:
                                     final_fixtures.append(os.path.join(filepath, item))
                     else:
