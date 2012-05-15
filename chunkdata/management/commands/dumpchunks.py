@@ -298,5 +298,6 @@ def sort_dependencies(app_list):
             )
         model_dependencies = skipped
 
-        print "Model list:\n %s" % ', '.join(model_list)
+    if self.options.get('verbosity', 0) >= 2:
+        print "Model list:\n %s" % ', '.join([model.__name__ for model in model_list])
     return model_list
