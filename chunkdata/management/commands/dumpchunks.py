@@ -201,7 +201,7 @@ def write_file(spec, count, format, objects, indent=None, use_natural_keys=False
         filename = '%s.%s' % (filespec, format)
     else:
         filename = '%s.%s.%s' % (filespec, count, format)
-    filepath = os.path.join(dirspec, filename)
+    filepath = os.path.join(dirspec, filename) if dirspec else filename
     print "Writing %d objects to %s" % (len(objects), filepath)
     f = open(filepath, 'wb')
     f.write(serialized)
