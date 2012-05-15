@@ -137,8 +137,8 @@ class Command(BaseCommand):
                     if qs_count and obj_count + qs_count > chunk:
 
                         try:
-                            filecount += 1
                             if objects:
+                                filecount += 1
                                 write_file(path_spec, filecount, format, objects, 
                                            indent=indent, use_natural_keys=use_natural_keys)
                                 objects = []
