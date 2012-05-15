@@ -9,6 +9,7 @@ from django.utils.datastructures import SortedDict
 from django.db.models import get_app, get_apps, get_models, get_model
 
 from optparse import make_option
+import os.path
 
 class Command(BaseCommand):
     option_list = BaseCommand.option_list + (
