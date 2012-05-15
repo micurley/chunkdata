@@ -159,7 +159,7 @@ class Command(BaseCommand):
                         if qs_count > chunk:
                             chunk_start = 0
                             chunk_end = chunk
-                            while chunk_end < qs_count:
+                            while chunk_end <= qs_count:
                                 filecount += 1
                                 write_file(path_spec, filecount, format, qs[chunk_start:chunk_end],
                                            indent=indent, use_natural_keys=use_natural_keys, 
