@@ -9,7 +9,7 @@ from django.utils.datastructures import SortedDict
 from django.db.models import get_app, get_apps, get_models, get_model
 
 from optparse import make_option
-import os.path
+import os
 
 class Command(BaseCommand):
     option_list = BaseCommand.option_list + (
@@ -138,10 +138,11 @@ class Command(BaseCommand):
 
                         try:
                             filecount += 1
-                            write_file(path_spec, filecount, format, objects, 
-                                       indent=indent, use_natural_keys=use_natural_keys)
-                            objects = []
-                            obj_count += qs_count
+                            if objects:
+                                write_file(path_spec, filecount, format, objects, 
+                                           indent=indent, use_natural_keys=use_natural_keys)
+                                objects = []
+                                obj_count += qs_count
                         except Exception, e:
                             if show_traceback:
                                 raise
@@ -193,7 +194,9 @@ def get_dirspec(app_labels):
     if len(app_labels) == 1:
         app_label, model_label = app_labels[0].split('.', 1) if '.' in app_labels[0] else (app_labels[0], None)
         app = get_app(app_label)
-        return os.path.abspath(os.path.dirname(app.__file__))
+        return os.path.join(os.path.abspath(os.path.dirname(app.__file__)), 'fixtures')
+
+    return 'fixtures'
 
 def write_file(spec, count, format, objects, indent=None, use_natural_keys=False):
     serialized = serialize(format, objects, indent=indent, use_natural_keys=use_natural_keys)
@@ -202,6 +205,8 @@ def write_file(spec, count, format, objects, indent=None, use_natural_keys=False
         filename = '%s.%s' % (filespec, format)
     else:
         filename = '%s.%s.%s' % (filespec, count, format)
+    if not os.path.exists(dirspec):
+        os.makedirs(dirspec)
     filepath = os.path.join(dirspec, filename) if dirspec else filename
     print "Writing %d objects to %s" % (len(objects), filepath)
     f = open(filepath, 'wb')
