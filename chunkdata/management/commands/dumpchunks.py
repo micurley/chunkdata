@@ -45,7 +45,7 @@ class Command(BaseCommand):
         filespec = options.get('filespec', None)
         if chunk and not filespec:
             if len(app_labels) == 1:
-                filespec = app_label[0]
+                filespec = app_labels[0]
             else:
                 filespec = 'django'
         if connections:
@@ -124,6 +124,7 @@ class Command(BaseCommand):
             if model in excluded_models:
                 continue
             if not model._meta.proxy and (not router or router.allow_syncdb(using, model)):
+                print "Attempting to export model: %s" % model.__class__.__name__
                 if use_base_manager:
                     manager = model._base_manager.using(using) if connections else model._base_manager
                     qs = manager.all()
@@ -190,7 +191,7 @@ def serialize(format, objects, indent=None, use_natural_keys=False):
 
 def get_dirspec(app_labels):
     if len(app_labels) == 1:
-        app_label, model_label = app_labels[0].split('.')
+        app_label, model_label = app_labels[0].split('.', 1) if '.' in app_labels[0] else (app_labels[0], None)
         app = get_app(app_label)
         return os.path.abspath(os.path.dirname(app.__file__))
 
