@@ -124,7 +124,7 @@ class Command(BaseCommand):
             if model in excluded_models:
                 continue
             if not model._meta.proxy and (not router or router.allow_syncdb(using, model)):
-                print "Attempting to export model: %s" % model.__class__.__name__
+                print "Attempting to export model: %s" % model.__name__
                 if use_base_manager:
                     manager = model._base_manager.using(using) if connections else model._base_manager
                     qs = manager.all()
