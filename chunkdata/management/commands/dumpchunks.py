@@ -174,12 +174,18 @@ class Command(BaseCommand):
                            indent=indent, use_natural_keys=use_natural_keys)
                 return "Wrote serialized database to %s/%s.#.%s" % path_spec + (format,)
 
-            return serializers.serialize(format, objects, indent=indent,
+            return serialize(format, objects, indent=indent,
                         use_natural_keys=use_natural_keys)
         except Exception, e:
             if show_traceback:
                 raise
             raise CommandError("Unable to serialize database: %s" % e)
+
+def serialize(format, objects, indent=indent, use_natural_keys=use_natural_keys):
+    try:
+        return serializers.serialize(format, objects, indent=indent, use_natural_keys=use_natural_keys)
+    except TypeError:
+        return serializers.serialize(format, objects, indent=indent)
 
 def get_dirspec(app_labels):
     if len(app_labels) == 1:
@@ -188,7 +194,7 @@ def get_dirspec(app_labels):
         return os.path.abspath(os.path.dirname(app.__file__))
 
 def write_file(spec, count, format, objects, indent=None, use_natural_keys=False):
-    serialized = serializers.serialize(format, objects, indent=indent, use_natural_keys=use_natural_keys)
+    serialized = serialize(format, objects, indent=indent, use_natural_keys=use_natural_keys)
     dirspec, filespec = spec
     if count == 0:
         filename = '%s.%s' % (filespec, format)
