@@ -37,7 +37,7 @@ class Command(BaseCommand):
     args = '[appname appname.ModelName ...]'
 
     def handle(self, *app_labels, **options):
-
+        self.options = options
         format = options.get('format','json')
         indent = options.get('indent',None)
         using = options.get('database', DEFAULT_DB_ALIAS)
@@ -103,6 +103,8 @@ class Command(BaseCommand):
                     if app in excluded_apps:
                         continue
                     app_list[app] = None
+            if options.get('verbosity', 0) >= 2:
+                print "App list:\n%s" % app_list
 
         # Check that the serialization format exists; this is a shortcut to
         # avoid collating all the objects and _then_ failing.
@@ -172,10 +174,15 @@ class Command(BaseCommand):
             if filecount > 1:
                 filecount += 1
 
-            if filespec:
-                write_file(path_spec, filecount, format, objects,
-                           indent=indent, use_natural_keys=use_natural_keys)
-                return "Wrote serialized database to %s/%s.#.%s" % (path_spec[0], path_spec[1], format)
+            if filespec and (objects or filecount):
+                if objects:
+                    write_file(path_spec, filecount, format, objects,
+                               indent=indent, use_natural_keys=use_natural_keys)
+                if filecount > 1:
+                    msg = "Wrote serialized database to %s/%s.#.%s" % (path_spec[0], path_spec[1], format)
+                else:
+                    msg = "Wrote serialized database to %s/%s.%s" % (path_spec[0], path_spec[1], format)
+                return msg
 
             return serialize(format, objects, indent=indent,
                         use_natural_keys=use_natural_keys)
@@ -209,7 +216,8 @@ def write_file(spec, count, format, objects, indent=None, use_natural_keys=False
     if not os.path.exists(dirspec):
         os.makedirs(dirspec)
     filepath = os.path.join(dirspec, filename) if dirspec else filename
-    print "Writing %d objects to %s" % (len(objects), filepath)
+    if self.options.get('verbosity', 0) >= 2:
+        print "Writing %d objects to %s" % (len(objects), filepath)
     f = open(filepath, 'wb')
     f.write(serialized)
     f.close()
@@ -286,5 +294,5 @@ def sort_dependencies(app_list):
                 for model, deps in sorted(skipped, key=lambda obj: obj[0].__name__))
             )
         model_dependencies = skipped
-
+        print "Model list: \n%s" % model_list
     return model_list
