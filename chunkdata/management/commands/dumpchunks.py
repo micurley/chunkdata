@@ -164,6 +164,8 @@ class Command(BaseCommand):
                                 write_file(path_spec, filecount, format, qs[chunk_start:chunk_end],
                                            indent=indent, use_natural_keys=use_natural_keys, 
                                            verbosity=verbosity)
+                                if chunk_end == qs_count: 
+                                    break
                                 chunk_start = chunk_end
                                 if chunk_end + chunk <= qs_count:
                                     chunk_end = chunk_end + chunk
