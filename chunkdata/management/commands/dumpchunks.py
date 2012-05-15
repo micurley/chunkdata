@@ -173,7 +173,7 @@ class Command(BaseCommand):
             if filespec:
                 write_file(path_spec, filecount, format, objects,
                            indent=indent, use_natural_keys=use_natural_keys)
-                return "Wrote serialized database to %s/%s.#.%s" % path_spec + (format,)
+                return "Wrote serialized database to %s/%s.#.%s" % (path_spec[0], path_spec[1], format)
 
             return serialize(format, objects, indent=indent,
                         use_natural_keys=use_natural_keys)
