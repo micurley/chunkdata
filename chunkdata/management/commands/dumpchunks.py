@@ -47,7 +47,7 @@ class Command(BaseCommand):
             if len(app_labels) == 1:
                 filespec = app_labels[0]
             else:
-                filespec = 'django'
+                filespec = 'chunks'
         if connections:
             connection = connections[using]
         excludes = options.get('exclude',[])
