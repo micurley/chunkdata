@@ -37,9 +37,9 @@ class Command(BaseCommand):
     args = '[appname appname.ModelName ...]'
 
     def handle(self, *app_labels, **options):
-        self.options = options
         format = options.get('format','json')
         indent = options.get('indent',None)
+        verbosity = options.get('verbosity', 0)
         using = options.get('database', DEFAULT_DB_ALIAS)
         chunk = options.get('chunk', None)
         filespec = options.get('filespec', None)
@@ -72,7 +72,7 @@ class Command(BaseCommand):
                     raise CommandError('Unknown app in excludes: %s' % exclude)
 
         if len(app_labels) == 0:
-            if options.get('verbosity', 0) >= 2:
+            if verbosity >= 2:
                 print "No app labels passed!"
             app_list = SortedDict([(app, None) for app in get_apps() if app not in excluded_apps])
         else:
@@ -106,7 +106,7 @@ class Command(BaseCommand):
                         continue
                     app_list[app] = None
 
-            if options.get('verbosity', 0) >= 2:
+            if verbosity >= 2:
                 print "App list:\n %s" % ', '.join(app_list.keys())
 
         # Check that the serialization format exists; this is a shortcut to
@@ -125,11 +125,12 @@ class Command(BaseCommand):
         obj_count = 0
         if filespec:
             path_spec = (get_dirspec(app_labels), filespec)
-        for model in sort_dependencies(app_list.items()):
+        for model in sort_dependencies(app_list.items(), verbosity):
             if model in excluded_models:
                 continue
             if not model._meta.proxy and (not router or router.allow_syncdb(using, model)):
-                print "Attempting to export model: %s" % model.__name__
+                if verbosity >= 2:
+                    print "Attempting to export model: %s" % model.__name__
                 if use_base_manager:
                     manager = model._base_manager.using(using) if connections else model._base_manager
                     qs = manager.all()
@@ -145,7 +146,8 @@ class Command(BaseCommand):
                             if objects:
                                 filecount += 1
                                 write_file(path_spec, filecount, format, objects, 
-                                           indent=indent, use_natural_keys=use_natural_keys)
+                                           indent=indent, use_natural_keys=use_natural_keys,
+                                           verbosity=verbosity)
                                 objects = []
                                 obj_count += qs_count
                         except Exception, e:
@@ -159,7 +161,8 @@ class Command(BaseCommand):
                             while chunk_end < qs_count:
                                 filecount += 1
                                 write_file(path_spec, filecount, format, qs[chunk_start:chunk_end],
-                                           indent=indent, use_natural_keys=use_natural_keys)
+                                           indent=indent, use_natural_keys=use_natural_keys, 
+                                           verbosity=verbosity)
                                 chunk_start = chunk_end
                                 if chunk_end + chunk <= qs_count:
                                     chunk_end = chunk_end + chunk
@@ -180,7 +183,8 @@ class Command(BaseCommand):
             if filespec and (objects or filecount):
                 if objects:
                     write_file(path_spec, filecount, format, objects,
-                               indent=indent, use_natural_keys=use_natural_keys)
+                               indent=indent, use_natural_keys=use_natural_keys, 
+                               verbosity=verbosity)
                 if filecount > 1:
                     msg = "Wrote serialized database to %s/%s.#.%s" % (path_spec[0], path_spec[1], format)
                 else:
@@ -208,7 +212,7 @@ def get_dirspec(app_labels):
 
     return 'fixtures'
 
-def write_file(spec, count, format, objects, indent=None, use_natural_keys=False):
+def write_file(spec, count, format, objects, indent=None, use_natural_keys=False, verbosity=0):
     serialized = serialize(format, objects, indent=indent, use_natural_keys=use_natural_keys)
     dirspec, filespec = spec
     if count == 0:
@@ -219,13 +223,13 @@ def write_file(spec, count, format, objects, indent=None, use_natural_keys=False
     if not os.path.exists(dirspec):
         os.makedirs(dirspec)
     filepath = os.path.join(dirspec, filename) if dirspec else filename
-    if self.options.get('verbosity', 0) >= 2:
+    if verbosity >= 2:
         print "Writing %d objects to %s" % (len(objects), filepath)
     f = open(filepath, 'wb')
     f.write(serialized)
     f.close()
 
-def sort_dependencies(app_list):
+def sort_dependencies(app_list, verbosity=0):
     """Sort a list of app,modellist pairs into a single list of models.
 
     The single list of models is sorted so that any model with a natural key
@@ -298,6 +302,6 @@ def sort_dependencies(app_list):
             )
         model_dependencies = skipped
 
-    if self.options.get('verbosity', 0) >= 2:
+    if verbosity >= 2:
         print "Model list:\n %s" % ', '.join([model.__name__ for model in model_list])
     return model_list
