@@ -141,7 +141,8 @@ class Command(BaseCommand):
                 if chunk:
                     qs_count = qs.count()
                     if qs_count and obj_count + qs_count > chunk:
-
+                        if verbosity >= 2:
+                            print "Found %d objects." % qs_count
                         try:
                             if objects:
                                 filecount += 1
@@ -186,7 +187,7 @@ class Command(BaseCommand):
                                indent=indent, use_natural_keys=use_natural_keys, 
                                verbosity=verbosity)
                 if filecount > 1:
-                    msg = "Wrote serialized database to %s/%s.#.%s" % (path_spec[0], path_spec[1], format)
+                    msg = "Wrote serialized database to %s/%s/%s.#.%s" % (path_spec[0], path_spec[1], path_spec[1], format)
                 else:
                     msg = "Wrote serialized database to %s/%s.%s" % (path_spec[0], path_spec[1], format)
                 return msg
