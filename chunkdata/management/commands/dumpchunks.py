@@ -72,6 +72,8 @@ class Command(BaseCommand):
                     raise CommandError('Unknown app in excludes: %s' % exclude)
 
         if len(app_labels) == 0:
+            if options.get('verbosity', 0) >= 2:
+                print "No app labels passed!"
             app_list = SortedDict((app, None) for app in get_apps() if app not in excluded_apps)
         else:
             app_list = SortedDict()
@@ -103,8 +105,9 @@ class Command(BaseCommand):
                     if app in excluded_apps:
                         continue
                     app_list[app] = None
+
             if options.get('verbosity', 0) >= 2:
-                print "App list:\n%s" % app_list
+                print "App list:\n%s" % ', '.join(app_list.keys())
 
         # Check that the serialization format exists; this is a shortcut to
         # avoid collating all the objects and _then_ failing.
@@ -294,5 +297,6 @@ def sort_dependencies(app_list):
                 for model, deps in sorted(skipped, key=lambda obj: obj[0].__name__))
             )
         model_dependencies = skipped
-        print "Model list: \n%s" % model_list
+
+        print "Model list: \n%s" % ', '.join(model_list)
     return model_list
