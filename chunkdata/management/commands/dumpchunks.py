@@ -204,6 +204,7 @@ def write_file(spec, count, format, objects, indent=None, use_natural_keys=False
     if count == 0:
         filename = '%s.%s' % (filespec, format)
     else:
+        dirspec = os.path.join(dirspec, filespec)
         filename = '%s.%s.%s' % (filespec, count, format)
     if not os.path.exists(dirspec):
         os.makedirs(dirspec)
