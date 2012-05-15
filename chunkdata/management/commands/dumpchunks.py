@@ -1,7 +1,10 @@
 from django.core.exceptions import ImproperlyConfigured
 from django.core.management.base import BaseCommand, CommandError
 from django.core import serializers
-from django.db import connections, router, DEFAULT_DB_ALIAS
+try:
+    from django.db import connections, router, DEFAULT_DB_ALIAS
+except ImportError:
+    connections = router = DEFAULT_DB_ALIAS = None
 from django.utils.datastructures import SortedDict
 from django.db.models import get_app, get_apps, get_models, get_model
 
@@ -44,7 +47,8 @@ class Command(BaseCommand):
                 filespec = app_label[0]
             else:
                 filespec = 'django'
-        connection = connections[using]
+        if connections:
+            connection = connections[using]
         excludes = options.get('exclude',[])
         show_traceback = options.get('traceback', False)
         use_natural_keys = options.get('use_natural_keys', False)
@@ -118,11 +122,13 @@ class Command(BaseCommand):
         for model in sort_dependencies(app_list.items()):
             if model in excluded_models:
                 continue
-            if not model._meta.proxy and router.allow_syncdb(using, model):
+            if not model._meta.proxy and (not router or router.allow_syncdb(using, model)):
                 if use_base_manager:
-                    qs = model._base_manager.using(using).all()
+                    manager = model._base_manager.using(using) if connections else model._base_manager
+                    qs = manager.all()
                 else:
-                    qs = model._default_manager.using(using).all()
+                    manager = model._default_manager.using(using) if connections else model._default_manager
+                    qs = manager.all()
 
                 if chunk:
                     qs_count = qs.count()

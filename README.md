@@ -5,7 +5,7 @@ Chunkdata is a set of two Django management commands one for creating fixtures a
 ## What does chunkdata do that's new?
 
 ### Fixture creation
-Chunkdata's data dumper `dumpchunks` allows you to specify a maximum object count (`-c` or `--chunk`) per fixture file and an optional fixture file name spec (`-f` or `--filespec`) in addition to `dumpdata`'s normal options. The file spec is used along with increment numbers and output format to construct the filename(s) (and parent directory name if there are multiple chunks) of fixture files written to disk. By default the fixture(s) are output to `app_name/fixtures` if a single app is included or `PROJECT_ROOT/fixtures` if not.
+Chunkdata's data dumper `dumpchunks` allows you to specify a maximum object count (`-c` or `--chunk`) per fixture file and an optional fixture file name spec (`-f` or `--filespec`) in addition to `dumpdata`'s normal options. The file spec is used along with increment numbers and output format to construct the filename(s) (and parent directory name if there are multiple chunks) of fixture files written to disk. By default the fixture(s) are output to `app_name/fixtures` if a single app is included or `PWD/fixtures` if not.
 
 The command also observes the following rules regarding chunking models:
 
@@ -16,7 +16,7 @@ The command also observes the following rules regarding chunking models:
 #### Examples:
 * If you call `django-admin.py dumpchunks -c 10000 -f foo` on a project with a total of 100,000 rows in representing 20 models all of which have 5,000 rows, you will get 10 fixture files like so: 
     ```
-    | PROJECT_ROOT
+    | PWD
     |
     --|fixtures
       |
