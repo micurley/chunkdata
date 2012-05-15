@@ -3,7 +3,7 @@ from optparse import make_option
 
 from django.conf import settings
 from django.core.management.base import BaseCommand
-from django.core import management
+from django.core import management, serializers
 
 try:
     from django.db import DEFAULT_DB_ALIAS
@@ -24,7 +24,7 @@ class Command(BaseCommand):
         )
 
     def handle(self, *fixture_labels, **options):
-        
+        formats = serializers.get_public_serializer_formats()
         app_module_paths = []
         for app in get_apps():
             if hasattr(app, '__path__'):
@@ -48,8 +48,10 @@ class Command(BaseCommand):
                     if os.path.exists(filepath):
                         if os.path.isdir(filepath):
                             for item in os.listdir(filepath):
-                                if fixture_label.split('/')[-1] in [item, item.split('.')[0]]:
-                                    final_fixtures.append(os.path.join(filepath, item))
+                                item_ext = os.path.splitext(item)[1]
+                                if item_ext and item_ext[1:] in formats:
+                                    if fixture_label.split('/')[-1] in [item, item.split('.')[0]]:
+                                        final_fixtures.append(os.path.join(filepath, item))
                     else:
                         management.call_command('loaddata', *[fixture_label], **options)
 
