@@ -45,7 +45,7 @@ class Command(BaseCommand):
                 fixture_dirs.sort()
                 for fixture_dir in fixture_dirs:
                     filepath = os.path.join(fixture_dir, fixture_label)
-                    if os.path.exist(filepath):
+                    if os.path.exists(filepath):
                         if os.path.isdir(filepath):
                             for item in os.path.listdir(filepath):
                                 if fixture_label.split('/')[-1] in [item, item.split('.')[0]]:
