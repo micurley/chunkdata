@@ -181,7 +181,7 @@ class Command(BaseCommand):
                 raise
             raise CommandError("Unable to serialize database: %s" % e)
 
-def serialize(format, objects, indent=indent, use_natural_keys=use_natural_keys):
+def serialize(format, objects, indent=None, use_natural_keys=False):
     try:
         return serializers.serialize(format, objects, indent=indent, use_natural_keys=use_natural_keys)
     except TypeError:
