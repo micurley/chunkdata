@@ -47,4 +47,7 @@ The command also observes the following rules regarding chunking models:
     ```
 
 ### Fixture loading
-Chunkdata's data loader `loadchunks` allows you to specify a name spec (`-s` or `--spec`) and it will find all of the chunks automatically--if there is a directory that matches the spec and it contains files matching the pattern `(spec)\.(\d+)\.(format)`. If there are no chunks, it functions identically to Django's loaddata.
+Chunkdata's data loader `loadchunks` follows the loaddata API and it will find all of the chunks automatically--if there is a directory that matches the name and it contains files matching the pattern `(name)\.(\d+)\.(json|yaml|xml)`. If there are no chunks, it functions identically to Django's loaddata.
+
+### Testing
+Chunkdata comes with a Django project for testing at `testproject`. In order to run the tests, either install the pip requirements to a virtualenv or have Django available on your global Python path. then run `python manage.py test` from the `testproject` directory.
