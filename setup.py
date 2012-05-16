@@ -5,7 +5,7 @@ use_setuptools()
 
 setup(
     name='chunkdata',
-    version='0.1.0',
+    version='0.2.0',
     author='Aaron McCall',
     author_email='aaron@andyet.net',
     packages=find_packages(),
