@@ -182,18 +182,17 @@ class Command(BaseCommand):
                     objects.extend(qs)
                             
         try:
-            if filecount > 1:
-                filecount += 1
 
             if filespec and (objects or filecount):
                 if objects:
+                    filecount += 1
                     write_file(path_spec, filecount, format, objects,
                                indent=indent, use_natural_keys=use_natural_keys, 
                                verbosity=verbosity)
                     total_obj_count += len(objects)
                 prefix = "Wrote serialized database (%d objects) to" % total_obj_count
                 if filecount > 1:
-                    msg = "%s %s/%s/%s.#.%s (%d files)\n" % (prefix, path_spec[0], path_spec[1], 
+                    msg = "%s %s/%s/%s.######.%s (%d files)\n" % (prefix, path_spec[0], path_spec[1], 
                                                   path_spec[1], format, filecount)
                 else:
                     msg = "%s %s/%s.%s\n" % (prefix, path_spec[0], path_spec[1], format)
@@ -226,7 +225,7 @@ def write_file(spec, count, format, objects, indent=None, use_natural_keys=False
         filename = '%s.%s' % (filespec, format)
     else:
         dirspec = os.path.join(dirspec, filespec)
-        filename = '%s.%s.%s' % (filespec, count, format)
+        filename = '%s.%06d.%s' % (filespec, count, format)
     if not os.path.exists(dirspec):
         os.makedirs(dirspec)
     filepath = os.path.join(dirspec, filename) if dirspec else filename
