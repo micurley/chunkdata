@@ -39,7 +39,7 @@ class Command(BaseCommand):
                 app_module_paths.append(app.__file__)
 
         app_fixtures = [os.path.join(os.path.dirname(path), 'fixtures') for path in app_module_paths]
-        final_fixtures = []
+
         for fixture_label in fixture_labels:
             if os.path.isabs(fixture_label):
                 management.call_command('loaddata', *[fixture_label], **options)
@@ -70,10 +70,7 @@ class Command(BaseCommand):
                         raise CommandError("%s" % err)
 
             if len(label_fixtures):
-                final_fixtures.extend(label_fixtures)            
-
-
-        if final_fixtures:
-            management.call_command('loaddata', *final_fixtures, **options)
-        else:
-            management.call_command('loaddata', *fixture_labels, **options)
+                for label_fixture in label_fixtures:
+                    management.call_command('loaddata', label_fixture, **options)
+            else:
+                management.call_command('loaddata', fixture_label, **options)
