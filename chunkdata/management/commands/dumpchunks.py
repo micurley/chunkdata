@@ -39,7 +39,7 @@ class Command(BaseCommand):
     def handle(self, *app_labels, **options):
         format = options.get('format','json')
         indent = options.get('indent',None)
-        verbosity = options.get('verbosity', 0)
+        verbosity = int(options.get('verbosity', 0))
         using = options.get('database', DEFAULT_DB_ALIAS)
         chunk = options.get('chunk', None)
         filespec = options.get('filespec', None)
@@ -107,7 +107,7 @@ class Command(BaseCommand):
                     app_list[app] = None
 
             if verbosity >= 2:
-                print "App list:\n %s" % ', '.join(app_list.keys())
+                print "App list:\n %s" % ', '.join([app.__package__ for app in app_list.keys()])
 
         # Check that the serialization format exists; this is a shortcut to
         # avoid collating all the objects and _then_ failing.
@@ -123,6 +123,7 @@ class Command(BaseCommand):
         objects = []
         filecount = 0
         obj_count = 0
+        total_obj_count = 0
         if filespec:
             path_spec = (get_dirspec(app_labels), filespec)
         for model in sort_dependencies(app_list.items(), verbosity):
@@ -140,45 +141,46 @@ class Command(BaseCommand):
 
                 if chunk:
                     qs_count = qs.count()
-                    if qs_count and obj_count + qs_count > chunk:
-                        if verbosity >= 2:
-                            print "Found %d objects." % qs_count
-                        try:
-                            if objects:
-                                filecount += 1
-                                write_file(path_spec, filecount, format, objects, 
-                                           indent=indent, use_natural_keys=use_natural_keys,
-                                           verbosity=verbosity)
-                                objects = []
-                                obj_count += qs_count
-                        except Exception, e:
-                            if show_traceback:
-                                raise
-                            raise CommandError("Unable to serialize database: %s" % e)
+                    if qs_count:
+                        if obj_count + qs_count > chunk:
+                            if verbosity >= 2:
+                                print "Found %d objects." % qs_count
+                            try:
+                                if objects:
+                                    filecount += 1
+                                    write_file(path_spec, filecount, format, objects, 
+                                               indent=indent, use_natural_keys=use_natural_keys,
+                                               verbosity=verbosity)
+                                    objects = []
+                                    obj_count += qs_count
+                            except Exception, e:
+                                if show_traceback:
+                                    raise
+                                raise CommandError("Unable to serialize database: %s" % e)
 
-                        if qs_count > chunk:
-                            chunk_start = 0
-                            chunk_end = chunk
-                            while chunk_end <= qs_count:
-                                filecount += 1
-                                write_file(path_spec, filecount, format, qs[chunk_start:chunk_end],
-                                           indent=indent, use_natural_keys=use_natural_keys, 
-                                           verbosity=verbosity)
-                                if chunk_end == qs_count: 
-                                    break
-                                chunk_start = chunk_end
-                                if chunk_end + chunk <= qs_count:
-                                    chunk_end = chunk_end + chunk
-                                else:
-                                    chunk_end = qs_count
-                    elif qs_count:
-                        objects.extend(qs)
-                        obj_count += qs_count
+                            if qs_count > chunk:
+                                chunk_start = 0
+                                chunk_end = chunk
+                                while chunk_end <= qs_count:
+                                    filecount += 1
+                                    write_file(path_spec, filecount, format, qs[chunk_start:chunk_end],
+                                               indent=indent, use_natural_keys=use_natural_keys, 
+                                               verbosity=verbosity)
+                                    if chunk_end == qs_count: 
+                                        break
+                                    chunk_start = chunk_end
+                                    if chunk_end + chunk <= qs_count:
+                                        chunk_end = chunk_end + chunk
+                                    else:
+                                        chunk_end = qs_count
+                        else:
+                            objects.extend(qs)
+                            obj_count += qs_count
+
+                        total_obj_count += qs_count
                 else:
                     objects.extend(qs)
                             
-                 
-
         try:
             if filecount > 1:
                 filecount += 1
@@ -188,14 +190,16 @@ class Command(BaseCommand):
                     write_file(path_spec, filecount, format, objects,
                                indent=indent, use_natural_keys=use_natural_keys, 
                                verbosity=verbosity)
+                    total_obj_count += len(objects)
+                prefix = "Wrote serialized database (%d objects) to" % total_obj_count
                 if filecount > 1:
-                    msg = "Wrote serialized database to %s/%s/%s.#.%s" % (path_spec[0], path_spec[1], path_spec[1], format)
+                    msg = "%s %s/%s/%s.#.%s (%d files)\n" % (prefix, path_spec[0], path_spec[1], 
+                                                  path_spec[1], format, filecount)
                 else:
-                    msg = "Wrote serialized database to %s/%s.%s" % (path_spec[0], path_spec[1], format)
+                    msg = "%s %s/%s.%s\n" % (prefix, path_spec[0], path_spec[1], format)
                 return msg
 
-            return serialize(format, objects, indent=indent,
-                        use_natural_keys=use_natural_keys)
+            return serialize(format, objects, indent=indent, use_natural_keys=use_natural_keys)
         except Exception, e:
             if show_traceback:
                 raise

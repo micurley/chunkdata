@@ -2,7 +2,7 @@ import os
 from optparse import make_option
 
 from django.conf import settings
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
 from django.core import management, serializers
 
 try:
@@ -10,6 +10,9 @@ try:
 except ImportError:
     DEFAULT_DB_ALIAS = None
 from django.db.models import get_apps
+
+class MultipleFixturesFoundError(Exception):
+    pass
 
 class Command(BaseCommand):
     help = 'Installs the named fixture(s) in the database.'
@@ -43,17 +46,34 @@ class Command(BaseCommand):
             else:
                 fixture_dirs = app_fixtures + list(settings.FIXTURE_DIRS) + ['']
                 fixture_dirs.sort()
-                for fixture_dir in fixture_dirs:
-                    filepath = os.path.join(fixture_dir, fixture_label)
-                    if os.path.exists(filepath):
-                        if os.path.isdir(filepath):
-                            for item in os.listdir(filepath):
-                                item_ext = os.path.splitext(item)[1]
-                                if item_ext and item_ext[1:] in formats:
-                                    if fixture_label.split('/')[-1] in [item, item.split('.')[0]]:
-                                        final_fixtures.append(os.path.join(filepath, item))
+                label_fixtures = []
+                found_in_fix_dir = ''
+                try:
+                    for fixture_dir in fixture_dirs:
+                        filepath = os.path.join(fixture_dir, fixture_label)
+                        if os.path.exists(filepath):
+                            if os.path.isdir(filepath):
+                                for item in os.listdir(filepath):
+                                    item_ext = os.path.splitext(item)[1]
+                                    if item_ext and item_ext[1:] in formats:
+                                        if fixture_label.split('/')[-1] in [item, item.split('.')[0]]:
+                                            if found_in_fix_dir and found_in_fix_dir != fixture_dir:
+                                                raise MultipleFixturesFoundError(
+                                                    "Found multiple files for %s\n" % fixture_label
+                                                )
+                                            label_fixtures.append(os.path.join(filepath, item))
+                                            found_in_fix_dir = fixture_dir
+                except MultipleFixturesFoundError, err:
+                    if options.get('traceback'):
+                        raise err
                     else:
-                        management.call_command('loaddata', *[fixture_label], **options)
+                        raise CommandError("%s" % err)
+
+            if len(label_fixtures):
+                final_fixtures.extend(label_fixtures)            
+
 
         if final_fixtures:
             management.call_command('loaddata', *final_fixtures, **options)
+        else:
+            management.call_command('loaddata', *fixture_labels, **options)
